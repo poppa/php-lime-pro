@@ -757,12 +757,12 @@ class Parser
 {
   private static $keywords = array(
     "select", "distinct", "from", "where",
-    "and", "or", "limit", "count", "order",
+    "limit", "count", "order",
     "by", "asc", "desc");
 
   private static $operators = array(
-    "!", "=", "!=", "<", ">", ">=", "<=",
-    "like", "%like", "like%");
+    "!", "=", "!=", "<", ">", ">=", "<=", "is",
+    "like", "%like", "like%", "and", "or", "in", "not");
 
   function parse($sql)
   {
@@ -833,17 +833,32 @@ class Parser
       }
 
       // MODIFIER
-      elseif ($t->is_a(Token::MODIFIER)) {
+      elseif ($t->is_a(Token::OPERATOR) && $t->lveq('and,or')) {
         $andor = $t;
         $pos += 1;
         continue;
       }
 
-      // STATEMENT
-      elseif ($t->is_a(Token::STATEMENT)) {
+      // PREDICATE
+      elseif ($t->is_a(Token::PREDICATE)) {
         $op = $tokens[++$pos];
+        $op2 = $tokens[$pos+1];
+
+        $opval = $op->value;
+
+        if ($op2->is_a(Token::OPERATOR)) {
+          $opval .= " $op2->value";
+          $pos += 1;
+        }
+
         $val = $tokens[++$pos];
-        $attr = array('operator' => $op->value);
+
+        if (!$val->is_a(Token::VALUE)) {
+          $m = "SQL syntax error! Expected a value, got something else!";
+          throw new \Exception($m, 1);
+        }
+
+        $attr = array('operator' => $opval);
 
         if ($andor && $andor->lc_value == "or") {
           $attr['or'] = '1';
@@ -895,7 +910,7 @@ class Parser
 
     if (sizeof($fields)) {
       if (sizeof($sort)) {
-        if (!$sort['order'])
+        if (!isset($sort['order']))
           $sort['order'] = "ASC";
 
         $i = 0;
@@ -946,40 +961,40 @@ class Parser
         return array_slice($tokens, 1);
 
       $t = new Token($w);
-      $prev = $tokens[$pos-1];
+      $p = $tokens[$pos-1];
 
       if (!$t->type) {
-        if ($prev->is_a(Token::COLUMN) || (
-            $prev->is_a(Token::KEYWORD) &&
-            in_array($prev->lc_value, array("select", "distinct", "count"))))
+        if ($p->is_a(Token::COLUMN) || (
+            $p->is_a(Token::KEYWORD) &&
+            in_array($p->lc_value, array("select", "distinct", "count"))))
         {
           $t->type = Token::COLUMN;
         }
-        elseif ($prev->is_a(Token::KEYWORD) && $prev->lc_value === "from") {
+        elseif ($p->is_a(Token::KEYWORD) && $p->lc_value === "from") {
           $t->type = Token::TABLE;
         }
-        elseif (($prev->is_a(Token::KEYWORD) && $prev->lc_value === "where") ||
-                $prev->is_a(Token::KEYWORD|Token::MODIFIER) ||
-                $prev->is_a(Token::GROUP_START))
+        elseif (($p->is_a(Token::KEYWORD) && $p->lveq('where'))
+               || ($p->is_a(Token::OPERATOR) && $p->lveq('and,or'))
+               || $p->is_a(Token::GROUP_START))
         {
-          $t->type = Token::STATEMENT;
+          $t->type = Token::PREDICATE;
         }
-        elseif ($prev->is_a(Token::OPERATOR)) {
+        elseif ($p->is_a(Token::OPERATOR)) {
           $t->type = Token::VALUE;
           $t->resolve_datatype();
         }
-        elseif ($prev->is_a(Token::KEYWORD|Token::LIMIT)) {
+        elseif ($p->is_a(Token::KEYWORD|Token::LIMIT)) {
           $t->type = Token::LIMIT_FROM;
         }
-        elseif ($prev->is_a(Token::LIMIT_FROM)) {
+        elseif ($p->is_a(Token::LIMIT_FROM)) {
           $t->type = Token::LIMIT_TO;
         }
-        elseif ($prev->is_a(Token::BY) || $prev->is_a(Token::SORT_KEY)) {
+        elseif ($p->is_a(Token::BY) || $p->is_a(Token::SORT_KEY)) {
           $t->type = Token::SORT_KEY;
         }
         else {
           throw new \Exception(
-            sprintf("Unresolved token type: %s : Prev: %s\n", $t, $prev),
+            sprintf("Unresolved token type: %s : Prev: %s\n", $t, $p),
             1);
         }
       }
@@ -1113,22 +1128,21 @@ class Token
   const OPERATOR    =      2;
   const VALUE       =      4;
   const COLUMN      =      8;
-  const STATEMENT   =     16;
-  const MODIFIER    =     32;
-  const TABLE       =     64;
-  const GROUP_START =    128;
-  const GROUP_END   =    256;
-  const LIMIT       =    512;
-  const LIMIT_FROM  =   1024;
-  const LIMIT_TO    =   2048;
-  const COUNT       =   4096;
-  const SELECT      =   8192;
-  const ORDER       =  16384;
-  const BY          =  32768;
-  const SORT_ORDER  =  65536;
-  const ORDER_ASC   = 131072;
-  const ORDER_DESC  = 262144;
-  const SORT_KEY    = 524288;
+  const PREDICATE   =     16;
+  const TABLE       =     32;
+  const GROUP_START =     64;
+  const GROUP_END   =    128;
+  const LIMIT       =    256;
+  const LIMIT_FROM  =    512;
+  const LIMIT_TO    =   1024;
+  const COUNT       =   2048;
+  const SELECT      =   4096;
+  const ORDER       =   8192;
+  const BY          =  16384;
+  const SORT_ORDER  =  32768;
+  const ORDER_ASC   =  65536;
+  const ORDER_DESC  = 131072;
+  const SORT_KEY    = 262144;
 
   public $value = null;
   public $type = Token::NONE;
@@ -1179,6 +1193,9 @@ class Token
       $this->type = Token::VALUE;
       $this->value = substr($value, 1, -1);
       $this->datatype = 'string';
+
+      if (preg_match('/\d{4}-\d{2}-\d{2}/', $this->value))
+        $this->datatype = 'date';
     }
     elseif ($value[0] === '(') {
       $this->type = Token::GROUP_START;
@@ -1192,11 +1209,23 @@ class Token
     }
   }
 
+  /**
+   * Lower case value equals `$what`?
+   *
+   * @param string $what
+   *  To check multiple alternatives pass in a comma delmited string
+   *  with no spaces like `$token->lveq('one,two,three')`
+   */
+  function lveq($what)
+  {
+    return in_array($this->lc_value, explode(',', $what));
+  }
+
   function resolve_datatype()
   {
     // Strings are resolved upon instantiation
     if (!$this->datatype) {
-      if ($this->value && sscanf($this->value, "%*4d-%*2d-%*2d") === 3)
+      if ($this->value && preg_match('/\d{4}-\d{2}-\d{2}/', $this->value))
         $this->datatype = "date";
       else
         $this->datatype = "numeric";

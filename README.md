@@ -109,6 +109,12 @@ The `$sql` query above will generate an XML structure as:
 which will be sent as argument to the web service. `Lime\Client\query()` will
 return an array of associative arrays if it succeeds, as shown in the example.
 
+All operators defined in the [Lime documentation](http://docs.lundalogik.com/pro/integration/lime-web-service/queries)
+can be used in the SQL query. The `IN` and `NOT IN` operators can be applicable
+to string values but not numeric values at the moment.
+
+The SQL syntax also handles `LIMIT FROM[, TO]`.
+
 ### 2. The `Lime\XML` namespace
 
 This namespace has one class, `Node`, for building the XML queries to Lime and
@@ -197,3 +203,30 @@ to the Lime web services...
 The `Lime` namespace only has two methods, `sql_to_node()` and `load_xml()`, at
 the moment. The former will turn an SQL query into a `Lime\XML\Node` object and
 the latter will turn an XML tree into a `Lime\XML\Node` object.
+
+## Example
+
+This is a real example that works for our installation of Lime.
+
+```php
+Lime\Client\set_endpoint('http://our.domain.local:8081/DataService/?wsdl');
+Lime\Client\set_config(array("trace" => 1, "exception" => 0));
+
+$sql = "
+SELECT DISTINCT
+       idsostype, descriptive, soscategory, soscategory.sosbusinessarea,
+       webcompany, webperson, web, department, name, department.descriptive
+FROM   sostype
+WHERE  active = 1 AND
+       soscategory.sosbusinessarea = 2701 AND
+       web=1 AND (webperson=1 OR webcompany=1)
+ORDER BY descriptive, department";
+
+$res = Lime\Client\query($sql);
+
+foreach ($res as $row) {
+  echo "* {$row['name']} ({$row['department.descriptive']})\n";
+}
+```
+
+# 2014-12-10
