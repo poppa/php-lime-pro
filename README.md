@@ -2,7 +2,7 @@ php-lime-pro
 ============
 
 A PHP interface to the web services of the CRM **Lime PRO** by
-[Lunda Logik](https://github.com/lundalogik).
+[Lundalogik](https://github.com/lundalogik).
 
 This module has a simple SQL parser so you can query the web services pretty
 much in the same way as you would query a normal database. *(At the moment
@@ -57,7 +57,7 @@ web service.
 $sql = "
   SELECT DISTINCT col1, col2, col3
   FROM table
-  WHERE col1=1 AND col4='yes' AND (coln='x' OR coly='z')
+  WHERE col1=1 AND col4!='no' AND (coln='x' OR coly='z')
   ORDER BY col1, col2 DESC";
 
 $res = Lime\Client\query($sql);

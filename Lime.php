@@ -1,7 +1,7 @@
 <?php
 /**
  * This module is an interface to the web services of
- * {@link http://www.lundalogik.se/ Lunda Logik}s web services for Lime Pro.
+ * {@link http://www.lundalogik.se/ Lundalogik}s web services for Lime PRO.
  *
  * More info can be found at the {@link https://github.com/poppa/php-lime-pro
  * Github repository}.
@@ -94,7 +94,7 @@ function query($query)
   }
   else {
     if (!$query instanceof \Lime\Node) {
-      $m = "Argument \$query is not an instance of \Lime\Node!";
+      $m = "Argument \$query is not an instance of \Lime\XML\Node!";
       throw new \Exception($m, 1);
     }
   }
