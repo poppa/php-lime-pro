@@ -1158,10 +1158,7 @@ class Token
     if (Parser::is_keyword($lv)) {
       $this->type = Token::KEYWORD;
 
-      if ($lv === "and" || $lv === "or") {
-        $this->type |= Token::MODIFIER;
-      }
-      elseif ($lv === "limit") {
+      if ($lv === "limit") {
         $this->type |= Token::LIMIT;
       }
       elseif ($lv === "select") {
@@ -1189,23 +1186,25 @@ class Token
       $this->type = Token::OPERATOR;
     }
 
-    if ($lv[0] === '\'' || $lv[0] === '"') {
-      $this->type = Token::VALUE;
-      $this->value = substr($value, 1, -1);
-      $this->datatype = 'string';
+    if ($lv && strlen($lv) > 0) {
+      if ($lv[0] === '\'' || $lv[0] === '"') {
+        $this->type = Token::VALUE;
+        $this->value = substr($value, 1, -1);
+        $this->datatype = 'string';
 
-      if (preg_match('/\d{4}-\d{2}-\d{2}/', $this->value))
-        $this->datatype = 'date';
-    }
-    elseif ($value[0] === '(') {
-      $this->type = Token::GROUP_START;
-    }
-    elseif ($value[0] === ')') {
-      $this->type = self::GROUP_END;
-    }
+        if (preg_match('/\d{4}-\d{2}-\d{2}/', $this->value))
+          $this->datatype = 'date';
+      }
+      elseif ($value[0] === '(') {
+        $this->type = Token::GROUP_START;
+      }
+      elseif ($value[0] === ')') {
+        $this->type = self::GROUP_END;
+      }
 
-    if ($value[0] === '`') {
-      $this->value = substr($value, 1, -1);
+      if ($value[0] === '`') {
+        $this->value = substr($value, 1, -1);
+      }
     }
   }
 
