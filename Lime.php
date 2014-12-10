@@ -858,6 +858,11 @@ class Parser
           throw new \Exception($m, 1);
         }
 
+        if ($tokens[$pos+1]->is_a(Token::TYPEHINT)) {
+          $val->datatype = $tokens[$pos+1]->value;
+          $pos += 1;
+        }
+
         $attr = array('operator' => $opval);
 
         if ($andor && $andor->lc_value == "or") {
@@ -1082,6 +1087,7 @@ class Parser
         case 'Q': case 'R': case 'S': case 'T': case 'U': case 'V': case 'W':
         case 'X': case 'Y': case 'Z': case '0': case '1': case '2': case '3':
         case '4': case '5': case '6': case '7': case '8': case '9': case '%':
+        case ':':
           while (1) {
             switch ($str[$pos]) {
               /*
@@ -1097,7 +1103,7 @@ class Parser
               case 'Q': case 'R': case 'S': case 'T': case 'U': case 'V':
               case 'W': case 'X': case 'Y': case 'Z': case '0': case '1':
               case '2': case '3': case '4': case '5': case '6': case '7':
-              case '8': case '9': case '%': case '.':
+              case '8': case '9': case '%': case '.': case ':':
                 $pos += 1;
                 continue 2; // Inner while
             }
@@ -1143,6 +1149,7 @@ class Token
   const ORDER_ASC   =  65536;
   const ORDER_DESC  = 131072;
   const SORT_KEY    = 262144;
+  const TYPEHINT    = 524288;
 
   public $value = null;
   public $type = Token::NONE;
@@ -1184,6 +1191,11 @@ class Token
     }
     elseif (Parser::is_operator($lv)) {
       $this->type = Token::OPERATOR;
+    }
+    elseif (strlen($this->lc_value) > 0 && $this->lc_value[0] === ':') {
+      $this->type = Token::TYPEHINT;
+      $this->value = substr($this->value, 1);
+      $this->lc_value = substr($this->lc_value, 1);
     }
 
     if ($lv && strlen($lv) > 0) {

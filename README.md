@@ -10,6 +10,7 @@ only SELECT statements are handled, and maybe support for INSERT/UPDATE will
 be added in the future)*. This is applicable to the `GetXmlQueryData` web
 service which is the one being used the most.
 
+
 ## How does it work?
 
 There are four `namespaces` in this module (in order of relevance)
@@ -23,6 +24,7 @@ There are four `namespaces` in this module (in order of relevance)
 functions and classes (a class) for creating the XML query document being sent
 to the web services and `Lime\Sql` has the SQL parsing stuff which isn't of any
 interest for normal usage.
+
 
 ### 1. The `Lime\Client` namespace
 
@@ -110,10 +112,29 @@ which will be sent as argument to the web service. `Lime\Client\query()` will
 return an array of associative arrays if it succeeds, as shown in the example.
 
 All operators defined in the [Lime documentation](http://docs.lundalogik.com/pro/integration/lime-web-service/queries)
-can be used in the SQL query. The `IN` and `NOT IN` operators can be applicable
-to string values but not numeric values at the moment.
+can be used in the SQL query.
 
 The SQL syntax also handles `LIMIT FROM[, TO]`.
+
+
+#### Typehints
+
+The SQL parser determines the data types in `WHERE` clause based on whether the
+value is quoted or not. If it's not quoted it's assumed to be a numeric value.
+If it's quoted it's assumed to be a string value. If it's quoted a check
+for if the value is a (ISO 8601) date will take place.
+
+But in some cases you need to quote the value and have it as numeric values,
+for instance if you want to do a `IN` or `NOT IN` check on a numeric field.
+
+If that's the case you can use typehints:
+
+```sql
+WHERE some_col NOT IN '12;13;14':numeric
+```
+
+Any thing like `:something` will be assumed to be a typehint.
+
 
 ### 2. The `Lime\XML` namespace
 
@@ -198,11 +219,13 @@ from a namespace and that will remove the necessity of the `X\` prefix.
 But the `Node` object can also be used for reading results from a SOAP call
 to the Lime web services...
 
+
 ### 3. The `Lime` namespace
 
 The `Lime` namespace only has two methods, `sql_to_node()` and `load_xml()`, at
 the moment. The former will turn an SQL query into a `Lime\XML\Node` object and
 the latter will turn an XML tree into a `Lime\XML\Node` object.
+
 
 ## Example
 
