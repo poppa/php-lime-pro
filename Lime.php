@@ -611,7 +611,7 @@ class Node implements \Iterator
    * @see \Lime\XML\Node::__toString()
    * @return string
    */
-  function toXML()
+  function to_xml()
   {
     $s = "<$this->name" . $this->attr_to_string();
 
@@ -632,14 +632,29 @@ class Node implements \Iterator
   }
 
   /**
-   * Cast to string. Same as {@link \Lime\XML\Node::toXML()}
+   * Same as {@link Node::to_xml()} except this formats the output. Good for
+   * debugging purposes.
    *
-   * @see \Lime\XML\Node::toXML()
+   * @return string
+   */
+  function to_human_readable_xml()
+  {
+    $s = $this->to_xml();
+    $doc = new \DOMDocument();
+    $doc->formatOutput = true;
+    $doc->loadXML($s, \LIBXML_NOXMLDECL);
+    return $doc->saveXML();
+  }
+
+  /**
+   * Cast to string. Same as {@link \Lime\XML\Node::to_xml()}
+   *
+   * @see \Lime\XML\Node::to_xml()
    * @return string
    */
   function __toString()
   {
-    return $this->toXML();
+    return $this->to_xml();
   }
 
   /*
@@ -762,7 +777,7 @@ class Parser
 
   private static $operators = array(
     "!", "=", "!=", "<", ">", ">=", "<=", "is",
-    "like", "%like", "like%", "and", "or", "in", "not");
+    "like", "and", "or", "in", "not");
 
   function parse($sql)
   {
@@ -849,6 +864,8 @@ class Parser
         if ($op2->is_a(Token::OPERATOR)) {
           $opval .= " $op2->value";
           $pos += 1;
+          $op = $op2;
+          unset($op2);
         }
 
         $val = $tokens[++$pos];
@@ -856,6 +873,17 @@ class Parser
         if (!$val->is_a(Token::VALUE)) {
           $m = "SQL syntax error! Expected a value, got something else!";
           throw new \Exception($m, 1);
+        }
+
+        if ($op->lveq('like') && strlen($val->value) > 0) {
+          if ($val->value[0] === '%') {
+            $val->value = substr($val->value, 1);
+            $opval = '%' . $opval;
+          }
+          if (substr($val->value, -1) === '%') {
+            $val->value = substr($val->value, 0, -1);
+            $opval .= '%';
+          }
         }
 
         if ($tokens[$pos+1]->is_a(Token::TYPEHINT)) {
@@ -876,6 +904,9 @@ class Parser
 
         array_push($conds, $c);
 
+        unset($op);
+        unset($val);
+        unset($opval);
         unset($attr);
       }
 
@@ -884,12 +915,15 @@ class Parser
               $t->is_a(Token::GROUP_END))
       {
         $attr = null;
+
         if ($andor && $andor->lc_value === 'or')
           $attr = array('or' => '1');
 
         $c = \Lime\XML\cond($attr, array(\Lime\XML\exp($t->value)));
         array_push($conds, $c);
+
         unset($attr);
+        unset($c);
       }
 
       $andor = null;
@@ -897,7 +931,7 @@ class Parser
     }
 
     if (sizeof($limits)) {
-      if (!$limits['top'])
+      if (!isset($limits['top']))
         $query_attr['top'] = $limits['first'];
       else {
         $query_attr['top'] = $limits['top'];
@@ -1158,7 +1192,8 @@ class Token
 
   function __construct($value)
   {
-    if (!$value) return;
+    if (is_null($value)) return;
+
     $this->value = $value;
     $this->lc_value = $lv = strtolower($value);
 
@@ -1232,6 +1267,23 @@ class Token
     return in_array($this->lc_value, explode(',', $what));
   }
 
+  function type_as_string()
+  {
+    $ref = new \ReflectionClass($this);
+    $arr = array();
+
+    foreach ($ref->getConstants() as $k => $c) {
+      if (!$c) continue;
+      if (($this->type & $c) === $c)
+        array_push($arr, $k);
+    }
+
+    if (!sizeof($arr))
+      $arr = array('NONE');
+
+    return implode('|', $arr);
+  }
+
   function resolve_datatype()
   {
     // Strings are resolved upon instantiation
@@ -1250,7 +1302,9 @@ class Token
 
   function __toString()
   {
-    return "Lime\Sql\Parser\Token($this->value, $this->type)";
+    $rc = new \ReflectionClass($this);
+    return $rc->getName() . '("' . $this->value . '", ' .
+           $this->type_as_string() . ')';
   }
 }
 ?>

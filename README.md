@@ -116,6 +116,25 @@ can be used in the SQL query.
 
 The SQL syntax also handles `LIMIT FROM[, TO]`.
 
+The Lime XML query also have the operators `%LIKE` and `LIKE%`. The SQL parser
+handles this like in a normal SQL query so you put the wildcard `%` signs on
+either side of the value and then the parser puts them on the `LIKE` operator
+for you. So to match the beginning of a string you would write it like normal
+SQL
+
+```sql
+WHERE field LIKE 'Some%'
+```
+
+which will become
+
+```xml
+<condition operator="LIKE%">
+  <exp type="field">field</exp>
+  <exp type="string">Some</exp>
+</condition>
+```
+
 
 #### Typehints
 
