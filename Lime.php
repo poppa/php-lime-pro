@@ -39,6 +39,30 @@
 namespace Lime;
 
 /**
+ * Convenience function for calling the {@link \Lime\Client::query()} method
+ * This is the same as:
+ *
+ * <pre>
+ *  $cli = new Lime\Client;
+ *  $cli->query($query);
+ * </pre>
+ *
+ * @param string|\Lime\XML\Node $sql_or_node
+ * @return array
+ */
+function query($sql_or_node)
+{
+  if (!Client::$endpoint) {
+    throw new \Exception("The Lime\Client hasn't been configured with " .
+                         "an endpoint! ", 1);
+  }
+
+  static $client = null;
+  if (!$client) $client = new Client;
+  return $client->query($sql_or_node);
+}
+
+/**
  * Generate a Lime XML query structure from a SQL query
  *
  * @api
@@ -66,152 +90,117 @@ function load_xml($xml)
 }
 
 /**
- * Web service stuff
+ * SOAP client. Extends the {@link http://php.net/manual/en/class.soapclient.php
+ * SoapClient} class.
  */
-namespace Lime\Client;
-
-// Webservice endpoint
-$endpoint = null;
-
-// SOAP client config
-$config = array();
-
-/**
- * Invoke a query to the `GetXmlQueryData` web service
- *
- * @api
- * @param string|\Lime\XML\Node $query
- *  If a string it's assumed to be an SQL query.
- * @return array
- *  An array of associative arrays
- */
-function query($query)
+class Client extends \SoapClient
 {
-  global $endpoint, $config;
+  public static $endpoint;
+  public static $options = array();
 
-  if (!is_object($query)) {
-    $query = \Lime\sql_to_node($query);
-  }
-  else {
-    if (!$query instanceof \Lime\Node) {
-      $m = "Argument \$query is not an instance of \Lime\XML\Node!";
-      throw new \Exception($m, 1);
-    }
+  /**
+   * Set the WSDL endpoint
+   *
+   * @param url $endpoint
+   */
+  public static function set_endpoint($endpoint)
+  {
+    self::$endpoint = $endpoint;
   }
 
-  $client = new \SoapClient($endpoint, $config);
-  $res = $client->__soapCall('GetXmlQueryData',
-                             array('query' => new QueryParam($query)));
-
-  if ($res->GetXmlQueryDataResult) {
-    return __xml_to_array($res->GetXmlQueryDataResult);
+  /**
+   * Set the SOAP client options
+   *
+   * @param array $options
+   */
+  public static function set_options(array $options)
+  {
+    self::$options = $options;
   }
 
-  return null;
-}
+  /**
+   * Create a new client.
+   *
+   * @note The arguments to this constructor can be set globally via the static
+   *       methods {@link \Lime\Client::set_endpoint()} and
+   *       {@link \Lime\Client::set_options()}.
+   *
+   * @param void|string $endpoint
+   * @param void|array $options
+   *  SoapClient options
+   */
+  function __construct($endpoint=null, array $options=null)
+  {
+    $ep = is_null($endpoint) ? self::$endpoint : $endpoint;
 
-/**
- * Set the endpoint of the Lime web webservice
- *
- * @api
- * @param string $wsdl_url
- */
-function set_endpoint($wsdl_url)
-{
-  global $endpoint;
-  $endpoint = $wsdl_url;
-}
-
-/**
- * Get the Lime web service endpoint.
- *
- * @api
- * @see set_endpoint()
- * @return string
- */
-function get_endpoint()
-{
-  global $endpoint;
-  return $endpoint;
-}
-
-/**
- * Set the SOAP client configuration
- *
- * @api
- * @param array $conf
- */
-function set_config(array $conf)
-{
-  global $config;
-  $config = $conf;
-}
-
-/**
- * Get the SOAP client config
- *
- * @api
- * @see set_client_config()
- * @return string
- */
-function get_config()
-{
-  global $config;
-  return $config;
-}
-
-/**
- * Add an option to the SOAP client config
- *
- * @api
- * @param string $name
- * @param mixed $value
- */
-function add_config_option($name, $value)
-{
-  global $config;
-  $config[$name] = $value;
-}
-
-/**
- * Remove an option from the SOAP client config
- *
- * @api
- * @param string $name
- */
-function remove_config_option($name)
-{
-  global $config;
-  unset($config[$name]);
-}
-
-/**
- * Turns a response from `GetXmlQueryData` into an array of assoc arrays
- *
- * @internal
- * @param string $str_xml
- * @return array
- */
-function __xml_to_array($str_xml)
-{
-  if (preg_match('/^<\?xml .*\?>(.*)$/', $str_xml, $m)) {
-    $str_xml = $m[1];
-  }
-
-  $xml = simplexml_load_string($str_xml);
-  $ret = array();
-
-  foreach ($xml->children() as $child) {
-    $tmp = array();
-
-    foreach ($child->attributes() as $key => $val) {
-      $tmp[$key] = (string) $val;
+    if (!$ep) {
+      throw new \Exception("No WSDL endpoint is configured! ", 1);
     }
 
-    array_push($ret, $tmp);
+    $op = is_null($options) ? self::$options : $options;
+
+    parent::__construct($ep, $op);
   }
 
-  return $ret;
+  /**
+   * Invoke a query to the `GetXmlQueryData` web service
+   *
+   * @api
+   * @param string|\Lime\XML\Node $query
+   *  If a string it's assumed to be an SQL query.
+   * @return array
+   *  An array of associative arrays
+   */
+  function query($query)
+  {
+    if (!is_object($query)) {
+      $query = \Lime\sql_to_node($query);
+    }
+    else {
+      if (!$query instanceof \Lime\XML\Node) {
+        $m = "Argument \$query is not an instance of \Lime\XML\Node!";
+        throw new \Exception($m, 1);
+      }
+    }
+
+    $res = parent::__soapCall('GetXmlQueryData',
+                              array('query' => new QueryParam($query)));
+
+    if ($res->GetXmlQueryDataResult) {
+      return self::__xml_to_array($res->GetXmlQueryDataResult);
+    }
+
+    return null;
+  }
+
+  /**
+   * Turns a response from `GetXmlQueryData` into an array of assoc arrays
+   *
+   * @internal
+   * @param string $str_xml
+   * @return array
+   */
+  public static function __xml_to_array($str_xml)
+  {
+    if (preg_match('/^<\?xml .*\?>(.*)$/', $str_xml, $m)) {
+      $str_xml = $m[1];
+    }
+
+    $xml = simplexml_load_string($str_xml);
+    $ret = array();
+
+    foreach ($xml->children() as $child) {
+      $tmp = array();
+
+      foreach ($child->attributes() as $key => $val) {
+        $tmp[$key] = (string) $val;
+      }
+
+      array_push($ret, $tmp);
+    }
+
+    return $ret;
+  }
 }
 
 /**

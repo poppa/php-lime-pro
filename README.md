@@ -13,56 +13,58 @@ service which is the one being used the most.
 
 ## How does it work?
 
-There are four `namespaces` in this module (in order of relevance)
+There are three `namespaces` in this module (in order of relevance)
 
-  1. Lime\Client
-  2. Lime\XML
-  3. Lime
-  4. Lime\Sql
+  1. Lime
+  2. Lime\Sql
+  3. Lime\XML
 
-`Lime\Client` contains functions for calling the web services. `Lime\XML` has
+`Lime` contains functions for calling the web services. `Lime\XML` has
 functions and classes (a class) for creating the XML query document being sent
 to the web services and `Lime\Sql` has the SQL parsing stuff which isn't of any
 interest for normal usage.
 
 
-### 1. The `Lime\Client` namespace
+### 1. The `Lime` namespace
 
-First you need to set the endpoint of the client, i.e. the location of the
-`WSDL` file of the webservices.
+This namespace has one significant class, namely the `Client` class. This class
+extends the builtin [`SoapClient`](http://php.net/manual/en/soapclient.soapclient.php)
+so all functionality from `SoapClient` can be used in `Lime\Client`.
+
+You can set the endpoint of the webservices, i.e the URL of the `WSDL` file,
+and the `SoapClient` options globally so that you don't have to pass those as
+arguments when enver you need to instantiate a new `Client` object.
+
+To set the endpoint of the client, i.e. the location of the
+`WSDL` file of the webservices, just call the static method `Client::set_endpoint()`.
 
 ```php
-Lime\Client\set_endpoint('http://url.to:8081/DataService/?wsdl');
+// Set the endpoint
+Lime\Client::set_endpoint('http://url.to:8081/DataService/?wsdl');
 ```
 
-You can also set options for the [`SoapClient`](http://php.net/manual/en/soapclient.soapclient.php)
-object.
+To set the options for the [`SoapClient`](http://php.net/manual/en/soapclient.soapclient.php)
+object, call `Client::set_options()`.
 
 ```php
-// Set the entire options array
-Lime\Client\set_options(array('trace' => 1, 'exception' => 0));
-
-// Add a specific option
-Lime\Client\set_config_option('exception', 0);
-
-// Remove a specific option
-Lime\Client\remove_config_option('trace');
-
-// Get all options
-$opts = Lime\Client\get_options();
+// Set the options array
+Lime\Client::set_options(array('trace' => 1, 'exception' => 0));
 ```
 
-And then the `Client` namespace has a method for calling the `GetXmlQueryData`
-web service.
+And then the `Client` has a `Client::query()` method for calling the
+`GetXmlQueryData` web service.
 
 ```php
+// Given the endpoint is set before this point
+
 $sql = "
   SELECT DISTINCT col1, col2, col3
   FROM table
   WHERE col1=1 AND col4!='no' AND (coln='x' OR coly='z')
   ORDER BY col1, col2 DESC";
 
-$res = Lime\Client\query($sql);
+$cli = new Lime\Client;
+$res = $cli->query($sql);
 
 foreach ($res as $row) {
   echo "* Data: {$row['col1']} and {$row['col2']} and {$row['col3']}\n";
@@ -108,8 +110,28 @@ The `$sql` query above will generate an XML structure as:
 </query>
 ```
 
-which will be sent as argument to the web service. `Lime\Client\query()` will
+which will be sent as argument to the web service. `Lime\Client::query()` will
 return an array of associative arrays if it succeeds, as shown in the example.
+
+The `Lime` namespace also has three methods, `sql_to_node()`, `load_xml()` and
+`query`. `Lime\sql_to_node()` will turn an SQL query into a `Lime\XML\Node`
+object and `Lime\load_xml()` will turn an XML tree into a `Lime\XML\Node` object.
+
+`Lime\query()` is a convenience function for calling the `Client::query()` method.
+Calling `Lime\query($sql)` is essential the same as
+
+```php
+$cli = new Lime\Client;
+$cli->query($sql);
+```
+
+
+### 2. The `Lime\Sql` namespace
+
+As a consumer of this module you really don't need to call anything specifically
+in this namespace, that is handled in the `Lime` namespace and the `\Lime\Client`
+class for you. But there's some stuff good knowing absout the SQL and Lime query
+syntaxes.
 
 All operators defined in the [Lime documentation](http://docs.lundalogik.com/pro/integration/lime-web-service/queries)
 can be used in the SQL query.
@@ -155,7 +177,7 @@ WHERE some_col NOT IN '12;13;14':numeric
 Any thing like `:something` will be assumed to be a typehint.
 
 
-### 2. The `Lime\XML` namespace
+### 3. The `Lime\XML` namespace
 
 This namespace has one class, `Node`, for building the XML queries to Lime and
 a couple of convenience wrapper methods for the most common tasks. All these
@@ -239,20 +261,13 @@ But the `Node` object can also be used for reading results from a SOAP call
 to the Lime web services...
 
 
-### 3. The `Lime` namespace
-
-The `Lime` namespace only has two methods, `sql_to_node()` and `load_xml()`, at
-the moment. The former will turn an SQL query into a `Lime\XML\Node` object and
-the latter will turn an XML tree into a `Lime\XML\Node` object.
-
-
 ## Example
 
 This is a real example that works for our installation of Lime.
 
 ```php
-Lime\Client\set_endpoint('http://our.domain.local:8081/DataService/?wsdl');
-Lime\Client\set_config(array("trace" => 1, "exception" => 0));
+Lime\Client::set_endpoint('http://our.domain.local:8081/DataService/?wsdl');
+Lime\Client::set_options(array("trace" => 1, "exception" => 0));
 
 $sql = "
 SELECT DISTINCT
@@ -264,11 +279,12 @@ WHERE  active = 1 AND
        web=1 AND (webperson=1 OR webcompany=1)
 ORDER BY descriptive, department";
 
-$res = Lime\Client\query($sql);
+$cli = new Lime\Client;
+$res = $cli->query($sql);
 
 foreach ($res as $row) {
   echo "* {$row['name']} ({$row['department.descriptive']})\n";
 }
 ```
 
-2014-12-10
+2014-12-11
