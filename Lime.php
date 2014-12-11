@@ -766,7 +766,7 @@ class Parser
 
   private static $operators = array(
     "!", "=", "!=", "<", ">", ">=", "<=", "is",
-    "like", "and", "or", "in", "not");
+    "like", "and", "or", "in", "not", "any", "all");
 
   function parse($sql)
   {

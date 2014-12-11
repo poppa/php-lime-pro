@@ -138,7 +138,7 @@ can be used in the SQL query.
 
 The SQL syntax also handles `LIMIT FROM[, TO]`.
 
-The Lime XML query also have the operators `%LIKE` and `LIKE%`. The SQL parser
+Lime XML queries also have the operators `%LIKE` and `LIKE%`. The SQL parser
 handles this like in a normal SQL query so you put the wildcard `%` signs on
 either side of the value and then the parser puts them on the `LIKE` operator
 for you. So to match the beginning of a string you would write it like normal
@@ -165,7 +165,7 @@ value is quoted or not. If it's not quoted it's assumed to be a numeric value.
 If it's quoted it's assumed to be a string value. If it's quoted a check
 for if the value is a (ISO 8601) date will take place.
 
-But in some cases you need to quote the value and have it as numeric values,
+But in some cases you need to quote the value and have it as a numeric value,
 for instance if you want to do a `IN` or `NOT IN` check on a numeric field.
 
 If that's the case you can use typehints:
@@ -174,12 +174,12 @@ If that's the case you can use typehints:
 WHERE some_col NOT IN '12;13;14':numeric
 ```
 
-Any thing like `:something` will be assumed to be a typehint.
+Any thing like `:something` is assumed to be a typehint.
 
 
 ### 3. The `Lime\XML` namespace
 
-This namespace has one class, `Node`, for building the XML queries to Lime and
+This namespace has one class, `Node`, for building the Lime XML queries, and
 a couple of convenience wrapper methods for the most common tasks. All these
 methods returns a `Node` object.
 
