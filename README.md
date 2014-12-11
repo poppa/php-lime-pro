@@ -29,11 +29,11 @@ interest for normal usage.
 
 This namespace has one significant class, namely the `Client` class. This class
 extends the builtin [`SoapClient`](http://php.net/manual/en/soapclient.soapclient.php)
-so all functionality from `SoapClient` can be used in `Lime\Client`.
+so all functionality in `SoapClient` can be used in `Lime\Client`.
 
 You can set the endpoint of the webservices, i.e the URL of the `WSDL` file,
 and the `SoapClient` options globally so that you don't have to pass those as
-arguments when enver you need to instantiate a new `Client` object.
+arguments when ever you need to instantiate a new `Client` object.
 
 To set the endpoint of the client, i.e. the location of the
 `WSDL` file of the webservices, just call the static method `Client::set_endpoint()`.
@@ -114,7 +114,7 @@ which will be sent as argument to the web service. `Lime\Client::query()` will
 return an array of associative arrays if it succeeds, as shown in the example.
 
 The `Lime` namespace also has three methods, `sql_to_node()`, `load_xml()` and
-`query`. `Lime\sql_to_node()` will turn an SQL query into a `Lime\XML\Node`
+`query()`. `Lime\sql_to_node()` will turn an SQL query into a `Lime\XML\Node`
 object and `Lime\load_xml()` will turn an XML tree into a `Lime\XML\Node` object.
 
 `Lime\query()` is a convenience function for calling the `Client::query()` method.
@@ -129,9 +129,9 @@ $cli->query($sql);
 ### 2. The `Lime\Sql` namespace
 
 As a consumer of this module you really don't need to call anything specifically
-in this namespace, that is handled in the `Lime` namespace and the `\Lime\Client`
-class for you. But there's some stuff good knowing absout the SQL and Lime query
-syntaxes.
+in this namespace, that stuff is handled for you in the `Lime` namespace and
+the `\Lime\Client`. But there's some stuff good knowing absout the SQL and Lime
+query syntaxes.
 
 All operators defined in the [Lime documentation](http://docs.lundalogik.com/pro/integration/lime-web-service/queries)
 can be used in the SQL query.
@@ -263,7 +263,7 @@ to the Lime web services...
 
 ## Example
 
-This is a real example that works for our installation of Lime.
+This is a real world example that works for our installation of Lime.
 
 ```php
 Lime\Client::set_endpoint('http://our.domain.local:8081/DataService/?wsdl');
@@ -279,8 +279,7 @@ WHERE  active = 1 AND
        web=1 AND (webperson=1 OR webcompany=1)
 ORDER BY descriptive, department";
 
-$cli = new Lime\Client;
-$res = $cli->query($sql);
+$res = Lime\query($sql);
 
 foreach ($res as $row) {
   echo "* {$row['name']} ({$row['department.descriptive']})\n";
