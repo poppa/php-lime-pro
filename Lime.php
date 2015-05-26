@@ -803,7 +803,7 @@ class Parser
       }
 
       // KEYWORD=distinct
-      elseif ($t->is_a(Token::KEYWORD) && $t->lc_value == "distinct") {
+      elseif ($t->is_a(Token::KEYWORD) && $t->lveq("distinct")) {
         $query_attr['distinct'] = '1';
       }
 
@@ -993,12 +993,11 @@ class Parser
 
       if (!$t->type) {
         if ($p->is_a(Token::COLUMN) || (
-            $p->is_a(Token::KEYWORD) &&
-            in_array($p->lc_value, array("select", "distinct", "count"))))
+            $p->is_a(Token::KEYWORD) && $p->lveq('select,distinct,count')))
         {
           $t->type = Token::COLUMN;
         }
-        elseif ($p->is_a(Token::KEYWORD) && $p->lc_value === "from") {
+        elseif ($p->is_a(Token::KEYWORD) && $p->lveq('from')) {
           $t->type = Token::TABLE;
         }
         elseif (($p->is_a(Token::KEYWORD) && $p->lveq('where'))
@@ -1022,8 +1021,7 @@ class Parser
         }
         else {
           throw new \Exception(
-            sprintf("Unresolved token type: %s : Prev: %s\n", $t, $p),
-            1);
+            sprintf("Unresolved token type: %s : Prev: %s\n", $t, $p), 1);
         }
       }
 
