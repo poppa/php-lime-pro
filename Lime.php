@@ -882,7 +882,7 @@ class Parser
 
         $attr = array('operator' => $opval);
 
-        if ($andor && $andor->lc_value == "or") {
+        if ($andor && $andor->lveq("or")) {
           $attr['or'] = '1';
         }
 

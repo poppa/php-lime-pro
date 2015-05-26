@@ -10,6 +10,8 @@ only SELECT statements are handled, and maybe support for INSERT/UPDATE will
 be added in the future)*. This is applicable to the `GetXmlQueryData` web
 service which is the one being used the most.
 
+There's also a [Java version](https://github.com/poppa/java-lime-pro) and a
+[C# version](https://github.com/poppa/csharp-lime-pro) of this module.
 
 ## How does it work?
 
