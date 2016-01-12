@@ -1097,7 +1097,7 @@ class Parser
           break;
 
         /*
-          Range a..Z, 0..9 and %
+          Range a..Z, 0..9 and '%', ':', '_'
         */
         case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g':
         case 'h': case 'i': case 'j': case 'k': case 'l': case 'm': case 'n':
@@ -1108,11 +1108,11 @@ class Parser
         case 'Q': case 'R': case 'S': case 'T': case 'U': case 'V': case 'W':
         case 'X': case 'Y': case 'Z': case '0': case '1': case '2': case '3':
         case '4': case '5': case '6': case '7': case '8': case '9': case '%':
-        case ':':
+        case ':': case '_':
           while (1) {
             switch ($str[$pos]) {
               /*
-                Range a..Z, 0..9 and % and '.'
+                Range a..Z, 0..9 and % and '.', ':', '_'
               */
               case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
               case 'g': case 'h': case 'i': case 'j': case 'k': case 'l':
@@ -1124,7 +1124,7 @@ class Parser
               case 'Q': case 'R': case 'S': case 'T': case 'U': case 'V':
               case 'W': case 'X': case 'Y': case 'Z': case '0': case '1':
               case '2': case '3': case '4': case '5': case '6': case '7':
-              case '8': case '9': case '%': case '.': case ':':
+              case '8': case '9': case '%': case '.': case ':': case '_':
                 $pos += 1;
                 continue 2; // Inner while
             }
